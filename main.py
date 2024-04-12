@@ -40,17 +40,23 @@ ground_img = pygame.image.load('ground.jpg')
 ground_img = pygame.transform.scale(ground_img, (screen_width, 50))  # Adjust the size here
 
 # Set up colors
-WHITE = (40, 55, 35)
+WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 
 # Set up the player
 player_size = 10
-player_pos = [screen_width / 2, screen_height - 2 * player_size]
+player_img = pygame.transform.scale(player_img, (50, 50))  # Adjust the size here
+player_width, player_height = player_img.get_rect().size
+player_pos = [(screen_width - player_width) / 2, screen_height - 50 - player_height]  # Adjusted position
 player_speed = 5
 player_jump = False
 jump_count = 10
+
+# Initial enemy count and time interval for increasing enemies
+initial_enemy_count = 5
+enemy_increase_interval = 20000  # 20 seconds
 
 # Clock for controlling the frame rate
 clock = pygame.time.Clock()
@@ -60,6 +66,10 @@ start_time = pygame.time.get_ticks()  # Get the initial time
 enemy_speed = 5  # Initial speed
 speed_increase_interval = 30000  # 30 seconds
 
+# Timer variables for increasing enemies
+enemy_increase_timer = pygame.time.get_ticks()
+current_enemy_count = initial_enemy_count
+
 # Score
 score = 0
 score_font = pygame.font.SysFont(None, 30)
@@ -67,7 +77,6 @@ score_font = pygame.font.SysFont(None, 30)
 # Main game loop
 while True:
     player_alive = True
-    player_pos = [screen_width / 2, screen_height - 2 * player_size]
     enemies = []  # Empty list of enemies at the start
     
     while player_alive:
@@ -84,9 +93,9 @@ while True:
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] and player_pos[0] > 0:
             player_pos[0] -= player_speed
-        if keys[pygame.K_RIGHT] and player_pos[0] < screen_width - player_size:
+        if keys[pygame.K_RIGHT] and player_pos[0] < screen_width - player_width:
             player_pos[0] += player_speed
-        
+
         # Jump mechanic
         if player_jump:
             if jump_count >= -10:
@@ -100,8 +109,13 @@ while True:
                 jump_count = 10
 
         # Move the enemies
-        if random.randint(1, 100) == 1:  # Random chance to spawn an enemy
+        if pygame.time.get_ticks() - enemy_increase_timer >= enemy_increase_interval:
+            current_enemy_count += 5  # Increase enemy count by 5 every 20 seconds
+            enemy_increase_timer = pygame.time.get_ticks()
+
+        if len(enemies) < current_enemy_count:  # Spawn enemies up to the current count
             enemies.append(create_enemy())
+
         for enemy in enemies:
             enemy[1] += enemy_speed  # Adjust enemy speed here
             if enemy[1] > screen_height:
@@ -109,9 +123,10 @@ while True:
                 score += 1
 
             # Check collision
-            if player_pos[1] < enemy[1] + 30:  # Use enemy size directly here
-                if player_pos[0] < enemy[0] + 30 and player_pos[0] + player_size > enemy[0]:  # Use enemy size directly here
-                    player_alive = False
+            player_rect = pygame.Rect(player_pos[0], player_pos[1], player_width, player_height)
+            enemy_rect = pygame.Rect(enemy[0], enemy[1], 30, 30)  # Use fixed size for enemy
+            if player_rect.colliderect(enemy_rect):
+                player_alive = False
 
         # Check if it's time to increase enemy speed
         elapsed_time = pygame.time.get_ticks() - start_time
@@ -141,7 +156,7 @@ while True:
 
         # Cap the frame rate
         clock.tick(30)
-    
+
     # Game over state
     while not player_alive:
         # Event handling
