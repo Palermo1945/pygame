@@ -64,15 +64,6 @@ player_jump = False
 jump_count = 10
 player_lives = 3  # Mario's initial lives
 
-# Define fruits and their scores
-fruits = [
-    (pygame.image.load('apple.png'), 10),
-    (pygame.image.load('banana.png'), 20),
-    (pygame.image.load('orange.png'), 30),
-    (pygame.image.load('grapes.png'), 40),
-    (pygame.image.load('watermelon.png'), 50)
-]
-
 # Initial enemy count and time interval for increasing enemies
 initial_enemy_count = 5
 enemy_increase_interval = 20000  # 20 seconds
@@ -80,6 +71,11 @@ enemy_increase_interval = 20000  # 20 seconds
 # Initial green mushroom count and time interval for increasing mushrooms
 initial_mushroom_count = 1
 mushroom_increase_interval = 60000  # 60 seconds
+
+# Green mushroom drop rate
+initial_mushroom_drop_rate = 10  # Initial drop rate
+max_mushroom_drop_rate = 10  # Maximum drop rate
+mushroom_drop_rate_interval = 5000  # Increase drop rate every 5 seconds
 
 # Clock for controlling the frame rate
 clock = pygame.time.Clock()
@@ -93,11 +89,12 @@ speed_increase_interval = 30000  # 30 seconds
 # Timer variables for increasing enemies and mushrooms
 enemy_increase_timer = pygame.time.get_ticks()
 mushroom_increase_timer = pygame.time.get_ticks()
+mushroom_drop_rate_timer = pygame.time.get_ticks()
 current_enemy_count = initial_enemy_count
 current_mushroom_count = initial_mushroom_count
 
 # Score
-fruit_score = 0
+mushroom_score = 0
 score_font = pygame.font.SysFont(None, 30)
 
 # Main game loop
@@ -152,7 +149,7 @@ while True:
             enemy[1] += enemy_speed  # Adjust enemy speed here
             if enemy[1] > screen_height:
                 enemies.remove(enemy)
-                fruit_score += 1
+                # fruit_score += 1
 
             # Check collision with player
             player_rect = pygame.Rect(player_pos[0], player_pos[1], player_width, player_height)
@@ -161,8 +158,13 @@ while True:
                 player_lives -= 1  # Deduct one life if collision occurs
                 if player_lives == 0:  # Game over if lives are exhausted
                     player_alive = False
+                    # Reset player position
+                    player_pos = [(screen_width - player_width) / 2, screen_height - 50 - player_height]
                 else:
-                    player_pos = [(screen_width - player_width) / 2, screen_height - 50 - player_height]  # Reset player position
+                    # Move player to a suitable position
+                    player_pos[1] = min(player_pos[1] - 50, screen_height - 50 - player_height)  # Ensure player doesn't go below ground
+
+                enemies.remove(enemy)  # Remove enemy after collision
 
         # Move the mushrooms
         if pygame.time.get_ticks() - mushroom_increase_timer >= mushroom_increase_interval:
@@ -181,16 +183,23 @@ while True:
             player_rect = pygame.Rect(player_pos[0], player_pos[1], player_width, player_height)
             mushroom_rect = pygame.Rect(mushroom[0], mushroom[1], 30, 30)  # Use fixed size for mushroom
             if player_rect.colliderect(mushroom_rect):
-                player_lives += 1  # Add one life if collision occurs
-                if player_lives > 3:  # Limit lives to 3
-                    player_lives = 3
+                # player_lives += 1  # Add one life if collision occurs
+                # if player_lives > 3:  # Limit lives to 3
+                #     player_lives = 3
                 mushrooms.remove(mushroom)
+                mushroom_score += 1  # Increase mushroom score when collected
 
         # Check if it's time to increase enemy speed
         elapsed_time = pygame.time.get_ticks() - start_time
         if elapsed_time >= speed_increase_interval:
             enemy_speed += 1  # Increase enemy speed
             start_time = pygame.time.get_ticks()  # Reset the timer
+
+        # Increase mushroom drop rate every 5 seconds up to a maximum of 10
+        if pygame.time.get_ticks() - mushroom_drop_rate_timer >= mushroom_drop_rate_interval:
+            if initial_mushroom_drop_rate < max_mushroom_drop_rate:
+                initial_mushroom_drop_rate += 1
+            mushroom_drop_rate_timer = pygame.time.get_ticks()
 
         # Clear the screen
         screen.blit(background_img, (0, 0))
@@ -201,6 +210,11 @@ while True:
         # Draw the player
         screen.blit(player_img, player_pos)
 
+        # Draw the green mushroom
+        if random.randint(1, 100) <= initial_mushroom_drop_rate:
+            mushroom_rect = mushroom_img.get_rect(topleft=(random.randint(0, screen_width - mushroom_img.get_width()), random.randint(0, screen_height - mushroom_img.get_height())))
+            screen.blit(mushroom_img, mushroom_rect)
+
         # Draw the enemies
         for enemy in enemies:
             screen.blit(enemy_img, enemy)
@@ -210,7 +224,7 @@ while True:
             screen.blit(mushroom_img, mushroom)
 
         # Draw the score
-        score_text = score_font.render("Fruit Score: " + str(fruit_score), True, BLACK)
+        score_text = score_font.render("Mushroom Score: " + str(mushroom_score), True, BLACK)
         screen.blit(score_text, [10, 10])
 
         # Draw player's lives
@@ -235,10 +249,12 @@ while True:
                 # Check if the mouse click is within the bounds of the buttons
                 if play_again_rect.collidepoint(mouse_pos):
                     player_alive = True
-                    fruit_score = 0
-                    player_lives = 3  # Reset player's lives
-                    enemy_speed = 5  # Reset enemy speed
-                    start_time = pygame.time.get_ticks()  # Reset the timer
+                    # Reset scores and player state
+                    mushroom_score = 0
+                    player_lives = 3
+                    enemy_speed = 5
+                    start_time = pygame.time.get_ticks()
+                    player_pos = [(screen_width - player_width) / 2, screen_height - 50 - player_height]
                 elif quit_rect.collidepoint(mouse_pos):
                     pygame.quit()
                     sys.exit()
@@ -247,7 +263,7 @@ while True:
         screen.blit(background_img, (0, 0))
 
         # Draw the score
-        score_text = score_font.render("Fruit Score: " + str(fruit_score), True, BLACK)
+        score_text = score_font.render("Mushroom Score: " + str(mushroom_score), True, BLACK)
         screen.blit(score_text, [10, 10])
 
         # Draw player's lives
