@@ -190,6 +190,7 @@ while True:
         pygame.draw.rect(screen, GREEN, play_again_rect)
         draw_text(play_again_text, play_again_font, BLACK, screen, play_again_rect.centerx, play_again_rect.centery)
 
+
         quit_text = "Quit"
         quit_font = pygame.font.SysFont(None, 30)
         quit_rect = pygame.Rect(3 * screen_width // 4, screen_height // 2 - 30, 100, 50)
